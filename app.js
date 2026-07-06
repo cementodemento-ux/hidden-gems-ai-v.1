@@ -1,32 +1,161 @@
-document.getElementById(“app”).innerHTML =
-<div class="container"> <h1>Hidden Gems AI</h1> <p class="subtitle">Discover high-potential YouTube channels using AI.</p> <div class="card"> <div class="form-group"> <label>Keyword</label> <input id="keyword" placeholder="AI Tools"> </div> <div class="form-group"> <label>Country</label> <select id="country"> <option value="global">Global</option> <option value="id">Indonesia</option> <option value="us">United States</option> <option value="in">India</option> </select> </div> <div class="form-group"> <label>Language</label> <select id="language"> <option value="english">English</option> <option value="indonesia">Indonesia</option> </select> </div> <div class="form-group"> <label>Minimum Opportunity Score</label> <input id="score" type="number" value="80"> </div> <button id="searchButton">Search Hidden Gems</button> </div> <div id="loading">Searching...</div> <div id="results"></div> </div>;
+document.getElementById("app").innerHTML = `
+<div class="container">
 
-document.getElementById(“searchButton”).onclick = async () => { const
-keyword=document.getElementById(“keyword”).value.trim(); const
-country=document.getElementById(“country”).value; const
-language=document.getElementById(“language”).value; const
-score=document.getElementById(“score”).value;
+<h1>Hidden Gems AI</h1>
 
-if(!keyword){ alert(“Keyword wajib diisi”); return; }
+<p class="subtitle">
+Discover high-potential YouTube channels using AI.
+</p>
 
-loading.style.display=“block”; results.style.display=“none”;
+<div class="card">
 
-try{ const response=await fetch(“YOUR_WORKER_URL”,{ method:“POST”,
-headers:{“Content-Type”:“application/json”},
-body:JSON.stringify({keyword,country,language,score}) });
+<div class="form-group">
+<label>Keyword / Niche</label>
+<input
+id="keyword"
+type="text"
+placeholder="Example: AI Tools">
+</div>
 
-const data=await response.json();
+<div class="form-group">
+<label>Country</label>
+<select id="country">
+<option value="global">Global</option>
+<option value="id">Indonesia</option>
+<option value="us">United States</option>
+<option value="in">India</option>
+</select>
+</div>
 
-loading.style.display=“none”; results.style.display=“block”;
+<div class="form-group">
+<label>Language</label>
+<select id="language">
+<option value="english">English</option>
+<option value="indonesia">Indonesia</option>
+</select>
+</div>
 
-if(!data.success){ results.innerHTML=’
+<div class="form-group">
+<label>Minimum Opportunity Score</label>
+<input
+id="score"
+type="number"
+value="80"
+min="1"
+max="100">
+</div>
 
-Tidak ada hasil
+<button id="searchButton">
+Search Hidden Gems
+</button>
 
-’; return; }
+</div>
 
-results.innerHTML=data.results.map(item=><div class="result-card">  <h2>${item.channel}</h2>  <div class="score">Opportunity Score ${item.score}</div>  <p><b>Subscribers:</b> ${item.subscribers}</p>  <p><b>Average Views:</b> ${item.views}</p>  <p><b>Upload Frequency:</b> ${item.frequency}</p>  <p>${item.reason}</p>  <a href="${item.url}" target="_blank">Open Channel</a>  </div>).join(““);
+<div id="loading">
+<h2>Searching Hidden Gems...</h2>
+<p>Please wait...</p>
+</div>
 
-}catch(e){ loading.style.display=“none”; results.style.display=“block”;
-results.innerHTML=<div class="result-card"><h2>Connection Error</h2><p>${e.message}</p></div>;
-} };
+<div id="results"></div>
+
+</div>
+`;
+
+const searchButton = document.getElementById("searchButton");
+const loading = document.getElementById("loading");
+const results = document.getElementById("results");
+
+searchButton.addEventListener("click", async () => {
+
+    const keyword = document.getElementById("keyword").value.trim();
+    const country = document.getElementById("country").value;
+    const language = document.getElementById("language").value;
+    const score = document.getElementById("score").value;
+
+    if (keyword === "") {
+        alert("Keyword wajib diisi");
+        return;
+    }
+
+    loading.style.display = "block";
+    results.style.display = "none";
+    results.innerHTML = "";
+
+    try {
+
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        const demoData = [
+            {
+                channel: "AI Growth Lab",
+                score: 92,
+                subscribers: "18K",
+                views: "45K",
+                frequency: "3 videos/week",
+                reason: "Fast subscriber growth with low competition.",
+                url: "https://youtube.com"
+            },
+            {
+                channel: "Future Tech Daily",
+                score: 88,
+                subscribers: "31K",
+                views: "61K",
+                frequency: "4 videos/week",
+                reason: "Consistent uploads and strong engagement.",
+                url: "https://youtube.com"
+            }
+        ];
+
+        loading.style.display = "none";
+        results.style.display = "block";
+
+        let html = "";
+
+        demoData.forEach(item => {
+
+            html += `
+            <div class="result-card">
+
+                <h2>${item.channel}</h2>
+
+                <div class="score">
+                    Opportunity Score ${item.score}
+                </div>
+
+                <p><strong>Subscribers:</strong> ${item.subscribers}</p>
+
+                <p><strong>Average Views:</strong> ${item.views}</p>
+
+                <p><strong>Upload Frequency:</strong> ${item.frequency}</p>
+
+                <p>${item.reason}</p>
+
+                <p>
+                    <a href="${item.url}" target="_blank">
+                        Open Channel
+                    </a>
+                </p>
+
+            </div>
+            `;
+
+        });
+
+        results.innerHTML = html;
+
+    } catch (error) {
+
+        loading.style.display = "none";
+
+        results.style.display = "block";
+
+        results.innerHTML = `
+        <div class="result-card">
+            <h2>Error</h2>
+            <p>${error.message}</p>
+        </div>
+        `;
+
+    }
+
+});
