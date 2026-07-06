@@ -1,11 +1,14 @@
 export default {
   async fetch(request, env) {
+
     const url = new URL(request.url);
 
     if (url.pathname !== "/search") {
       return new Response("Hidden Gems AI Worker OK", {
+        status: 200,
         headers: {
-          "content-type": "text/plain"
+          "content-type": "text/plain",
+          "Access-Control-Allow-Origin": "*"
         }
       });
     }
@@ -16,9 +19,9 @@ export default {
     const score = Number(url.searchParams.get("score") || 80);
 
     const prompt = `
-You are a YouTube Growth Analyst.
+You are an expert YouTube growth analyst.
 
-Find hidden YouTube channels.
+Find 10 hidden YouTube channels.
 
 Keyword: ${keyword}
 Country: ${country}
@@ -27,28 +30,27 @@ Minimum Opportunity Score: ${score}
 
 Return ONLY valid JSON.
 
-Format:
+Example:
 
 {
-  "results":[
-    {
-      "channel":"...",
-      "subscribers":"...",
-      "views":"...",
-      "uploads":"...",
-      "opportunity":90,
-      "description":"...",
-      "url":"https://youtube.com/..."
-    }
-  ]
+"results":[
+{
+"channel":"Channel Name",
+"subscribers":"12K",
+"views":"45K",
+"uploads":"4 videos/week",
+"opportunity":91,
+"description":"Reason why this channel is promising.",
+"url":"https://youtube.com/@channel"
+}
+]
 }
 `;
 
     try {
 
       const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-          env.GEMINI_API_KEY,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: {
@@ -68,20 +70,54 @@ Format:
         }
       );
 
-      const data = await response.json();
+      const gemini = await response.json();
 
-      const text =
-        data.candidates[0].content.parts[0].text
-          .replace(/```json/g, "")
-          .replace(/```/g, "")
-          .trim();
+      let text =
+        gemini?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-      return new Response(text, {
-        headers: {
-          "content-type": "application/json",
-          "Access-Control-Allow-Origin": "*"
+      text = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      let parsed;
+
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Gemini returned invalid JSON",
+            raw: text
+          }),
+          {
+            headers: {
+              "content-type": "application/json",
+              "Access-Control-Allow-Origin": "*"
+            }
+          }
+        );
+
+      }
+
+      if (!parsed.results) {
+        parsed.results = [];
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          results: parsed.results
+        }),
+        {
+          headers: {
+            "content-type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
         }
-      });
+      );
 
     } catch (e) {
 
