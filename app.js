@@ -4,26 +4,23 @@ document.getElementById("app").innerHTML = `
 <h1>Hidden Gems AI</h1>
 
 <p class="subtitle">
-Find High Potential YouTube Hidden Gems
+Discover high-potential YouTube channels using AI.
 </p>
 
+<div class="card">
+
 <div class="form-group">
-<label>Keyword / Niche</label>
-<input
-id="keyword"
-type="text"
-placeholder="Example: AI Tools">
+<label>Keyword</label>
+<input id="keyword" placeholder="AI Tools">
 </div>
 
 <div class="form-group">
 <label>Country</label>
 <select id="country">
 <option value="global">Global</option>
-<option value="us">United States</option>
 <option value="id">Indonesia</option>
+<option value="us">United States</option>
 <option value="in">India</option>
-<option value="br">Brazil</option>
-<option value="jp">Japan</option>
 </select>
 </div>
 
@@ -32,20 +29,12 @@ placeholder="Example: AI Tools">
 <select id="language">
 <option value="english">English</option>
 <option value="indonesia">Indonesia</option>
-<option value="spanish">Spanish</option>
-<option value="portuguese">Portuguese</option>
-<option value="japanese">Japanese</option>
 </select>
 </div>
 
 <div class="form-group">
 <label>Minimum Opportunity Score</label>
-<input
-id="score"
-type="number"
-value="80"
-min="1"
-max="100">
+<input id="score" type="number" value="80">
 </div>
 
 <button id="searchButton">
@@ -53,28 +42,68 @@ Search Hidden Gems
 </button>
 
 </div>
+
+<div id="loading">
+Searching...
+</div>
+
+<div id="results">
+</div>
+
+</div>
 `;
 
-const searchButton = document.getElementById("searchButton");
+const searchButton=document.getElementById("searchButton");
 
-searchButton.addEventListener("click", () => {
+searchButton.onclick=async()=>{
 
-    const keyword = document.getElementById("keyword").value.trim();
+const keyword=document.getElementById("keyword").value.trim();
 
-    const country = document.getElementById("country").value;
+if(keyword===""){
+alert("Keyword wajib diisi");
+return;
+}
 
-    const language = document.getElementById("language").value;
+document.getElementById("loading").style.display="block";
 
-    const score = document.getElementById("score").value;
+document.getElementById("results").style.display="none";
 
-    alert(
-`Keyword : ${keyword}
+setTimeout(()=>{
 
-Country : ${country}
+document.getElementById("loading").style.display="none";
 
-Language : ${language}
+const results=document.getElementById("results");
 
-Minimum Score : ${score}`
-    );
+results.style.display="block";
 
-});
+results.innerHTML=`
+
+<div class="result-card">
+
+<h2>Demo Hidden Gem</h2>
+
+<div class="score">
+Opportunity Score 92
+</div>
+
+<p><b>Subscribers:</b> 18K</p>
+
+<p><b>Average Views:</b> 45K</p>
+
+<p><b>Upload Frequency:</b> 3 videos/week</p>
+
+<p>
+Strong growth with low competition.
+</p>
+
+<a href="#">
+Open Channel
+</a>
+
+</div>
+
+`;
+
+},1500);
+
+}
