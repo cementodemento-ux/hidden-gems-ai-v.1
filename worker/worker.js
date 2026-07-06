@@ -135,24 +135,26 @@ Format:
         }
 
       );
-      if(!geminiResponse.ok){
+      if (!geminiResponse.ok) {
 
-        return new Response(
-          JSON.stringify({
-            success:false,
-            error:"Gemini API request failed.",
-            status:geminiResponse.status
-          }),
-          {
-            status:500,
-            headers:{
-              "content-type":"application/json",
-              "Access-Control-Allow-Origin":"*"
-            }
-          }
-        );
+  const errorText = await geminiResponse.text();
 
+  return new Response(
+    JSON.stringify({
+      success: false,
+      status: geminiResponse.status,
+      error: "Gemini API request failed.",
+      details: errorText
+    }),
+    {
+      status: 500,
+      headers: {
+        "content-type": "application/json",
+        "Access-Control-Allow-Origin": "*"
       }
+    }
+  );
+}
 
       const gemini=await geminiResponse.json();
 
