@@ -1,3 +1,5 @@
 name = "hidden-gems-ai"
 main = "worker.js"
 compatibility_date = "2026-07-06"
+
+account_id = "225cdb05609c4fbe2d62c3b7ed5e0cb4"
