@@ -4,7 +4,7 @@ export default {
     const headers = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "*",
-      "Access-Control-Allow-Methods": "*",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
       "Content-Type": "application/json"
     };
 
@@ -19,7 +19,7 @@ export default {
       const keyword = url.searchParams.get("keyword") || "";
       const country = url.searchParams.get("country") || "global";
       const language = url.searchParams.get("language") || "english";
-      const minimumScore = url.searchParams.get("score") || "80";
+      const score = url.searchParams.get("score") || "80";
 
       const prompt = `
 Return ONLY valid JSON.
@@ -43,15 +43,16 @@ Find hidden YouTube channels.
 Keyword: ${keyword}
 Country: ${country}
 Language: ${language}
-Minimum Score: ${minimumScore}
+Minimum Score: ${score}
 `;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "X-goog-api-key": env.GEMINI_API_KEY
           },
           body: JSON.stringify({
             contents: [
@@ -62,11 +63,7 @@ Minimum Score: ${minimumScore}
                   }
                 ]
               }
-            ],
-            generationConfig: {
-              temperature: 0.8,
-              responseMimeType: "application/json"
-            }
+            ]
           })
         }
       );
@@ -80,24 +77,21 @@ Minimum Score: ${minimumScore}
         });
       }
 
-      const gemini = JSON.parse(raw);
+      const data = JSON.parse(raw);
 
       const text =
-        (gemini.candidates?.[0]?.content?.parts?.[0]?.text || "")
-          .replace(/```json/g, "")
-          .replace(/```/g, "")
-          .trim();
+        data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
       return new Response(text, {
         headers
       });
 
-    } catch (e) {
+    } catch (err) {
 
       return new Response(
         JSON.stringify({
           success: false,
-          error: e.message
+          error: err.message
         }),
         {
           status: 500,
