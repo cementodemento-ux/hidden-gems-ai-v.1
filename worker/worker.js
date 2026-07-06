@@ -1,33 +1,28 @@
 export default {
   async fetch(request, env) {
 
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Methods": "*",
+      "Content-Type": "application/json"
+    };
+
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "*",
-          "Access-Control-Allow-Methods": "*"
-        }
-      });
+      return new Response(null, { headers });
     }
 
     try {
 
-      const body = await request.json();
+      const url = new URL(request.url);
 
-      const {
-        keyword,
-        country,
-        language,
-        minimumScore
-      } = body;
+      const keyword = url.searchParams.get("keyword") || "";
+      const country = url.searchParams.get("country") || "global";
+      const language = url.searchParams.get("language") || "english";
+      const minimumScore = url.searchParams.get("score") || "80";
 
       const prompt = `
-You are an elite YouTube Hidden Gems researcher.
-
 Return ONLY valid JSON.
-
-Schema:
 
 {
   "results":[
@@ -43,37 +38,20 @@ Schema:
   ]
 }
 
-Find YouTube channels matching:
+Find hidden YouTube channels.
 
 Keyword: ${keyword}
-
 Country: ${country}
-
 Language: ${language}
-
-Minimum Opportunity Score:
-${minimumScore}
-
-Requirements:
-
-- AI friendly
-- Hidden channels
-- High growth
-- No music
-- No gaming
-- No celebrities
-- No politics
-- No religion
-
-Return only JSON.
+Minimum Score: ${minimumScore}
 `;
 
       const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + env.GEMINI_API_KEY,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: {
-            "Content-Type":"application/json"
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             contents: [
@@ -87,8 +65,6 @@ Return only JSON.
             ],
             generationConfig: {
               temperature: 0.8,
-              topP: 0.95,
-              maxOutputTokens: 8192,
               responseMimeType: "application/json"
             }
           })
@@ -98,64 +74,38 @@ Return only JSON.
       const raw = await response.text();
 
       if (!response.ok) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            status: response.status,
-            error: "Gemini Error",
-            details: raw
-          }),
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*"
-            }
-          }
-        );
+        return new Response(raw, {
+          status: response.status,
+          headers
+        });
       }
 
       const gemini = JSON.parse(raw);
 
-      let text =
-        gemini?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const text =
+        (gemini.candidates?.[0]?.content?.parts?.[0]?.text || "")
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
 
-      text = text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
+      return new Response(text, {
+        headers
+      });
 
-      const data = JSON.parse(text);
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          results: data.results || []
-        }),
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
-        }
-      );
-    } catch (error) {
+    } catch (e) {
 
       return new Response(
         JSON.stringify({
           success: false,
-          error: error.message,
-          stack: error.stack
+          error: e.message
         }),
         {
           status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
+          headers
         }
       );
 
     }
 
   }
-};
+}
