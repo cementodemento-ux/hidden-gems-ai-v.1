@@ -81,6 +81,37 @@ const data = await response.json();
 loading.style.display = "none";
 results.style.display = "block";
 
+if (!data.success) {
+results.innerHTML = `
+<div class="result-card">
+<h2>Error</h2>
+<p>${data.error || "Unknown Error"}</p>
+<pre style="white-space:pre-wrap;">${data.raw || ""}</pre>
+</div>
+`;
+return;
+}
+
+if (!Array.isArray(data.results)) {
+results.innerHTML = `
+<div class="result-card">
+<h2>Error</h2>
+<p>Response tidak memiliki data results.</p>
+</div>
+`;
+return;
+}
+
+if (data.results.length === 0) {
+results.innerHTML = `
+<div class="result-card">
+<h2>Tidak ada hasil</h2>
+<p>Coba keyword lain.</p>
+</div>
+`;
+return;
+}
+
 let html = "";
 
 data.results.forEach(item => {
