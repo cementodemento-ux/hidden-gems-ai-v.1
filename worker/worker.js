@@ -1,11 +1,9 @@
 export default {
-  async fetch(request) {
-
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname !== "/search") {
       return new Response("Hidden Gems AI Worker OK", {
-        status: 200,
         headers: {
           "content-type": "text/plain"
         }
@@ -17,53 +15,91 @@ export default {
     const language = url.searchParams.get("language") || "english";
     const score = Number(url.searchParams.get("score") || 80);
 
-    const demo = [
-      {
-        channel:"AI Growth Lab",
-        subscribers:"18K",
-        views:"45K",
-        uploads:"3 videos/week",
-        opportunity:92,
-        description:"Fast subscriber growth with low competition.",
-        url:"https://youtube.com"
-      },
-      {
-        channel:"Future Tech Daily",
-        subscribers:"31K",
-        views:"61K",
-        uploads:"4 videos/week",
-        opportunity:88,
-        description:"Consistent uploads and strong engagement.",
-        url:"https://youtube.com"
-      },
-      {
-        channel:"AI Explained",
-        subscribers:"12K",
-        views:"30K",
-        uploads:"5 videos/week",
-        opportunity:85,
-        description:"Strong evergreen content.",
-        url:"https://youtube.com"
-      }
-    ];
+    const prompt = `
+You are a YouTube Growth Analyst.
 
-    const results = demo.filter(x => x.opportunity >= score);
+Find hidden YouTube channels.
 
-    return new Response(
-      JSON.stringify({
-        success:true,
-        keyword,
-        country,
-        language,
-        results
-      }),
-      {
-        headers:{
-          "content-type":"application/json",
-          "Access-Control-Allow-Origin":"*"
+Keyword: ${keyword}
+Country: ${country}
+Language: ${language}
+Minimum Opportunity Score: ${score}
+
+Return ONLY valid JSON.
+
+Format:
+
+{
+  "results":[
+    {
+      "channel":"...",
+      "subscribers":"...",
+      "views":"...",
+      "uploads":"...",
+      "opportunity":90,
+      "description":"...",
+      "url":"https://youtube.com/..."
+    }
+  ]
+}
+`;
+
+    try {
+
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
+          env.GEMINI_API_KEY,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt
+                  }
+                ]
+              }
+            ]
+          })
         }
-      }
-    );
+      );
+
+      const data = await response.json();
+
+      const text =
+        data.candidates[0].content.parts[0].text
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+
+      return new Response(text, {
+        headers: {
+          "content-type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+
+    } catch (e) {
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: e.message
+        }),
+        {
+          status: 500,
+          headers: {
+            "content-type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        }
+      );
+
+    }
 
   }
-}
+};
