@@ -1,308 +1,158 @@
 export default {
-
   async fetch(request, env) {
-
-    if (request.method === "OPTIONS") {
-
-      return new Response(null,{
-        headers:{
-          "Access-Control-Allow-Origin":"*",
-          "Access-Control-Allow-Headers":"*",
-          "Access-Control-Allow-Methods":"GET,POST,OPTIONS"
-        }
-      });
-
-    }
 
     const url = new URL(request.url);
 
-    if(url.pathname!=="/search"){
-
-      return new Response(
-        JSON.stringify({
-          success:true,
-          message:"Hidden Gems AI Worker Online"
-        }),
-        {
-          headers:{
-            "content-type":"application/json",
-            "Access-Control-Allow-Origin":"*"
-          }
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "*",
+          "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
         }
-      );
-
+      });
     }
 
-    const keyword=url.searchParams.get("keyword")||"";
-
-    const country=url.searchParams.get("country")||"global";
-
-    const language=url.searchParams.get("language")||"english";
-
-    const score=Number(
-      url.searchParams.get("score")||80
-    );
-
-    if(keyword===""){
-
-      return new Response(
-        JSON.stringify({
-          success:false,
-          error:"Keyword is required."
-        }),
-        {
-          status:400,
-          headers:{
-            "content-type":"application/json",
-            "Access-Control-Allow-Origin":"*"
-          }
+    if (url.pathname !== "/search") {
+      return new Response("Hidden Gems AI Worker", {
+        headers: {
+          "content-type": "text/plain"
         }
-      );
-
+      });
     }
 
-    const prompt=`
+    const keyword = url.searchParams.get("keyword") || "";
+    const country = url.searchParams.get("country") || "global";
+    const language = url.searchParams.get("language") || "english";
+    const score = Number(url.searchParams.get("score") || 80);
 
+    const prompt = `
 You are an elite YouTube Growth Analyst.
 
-Find 10 hidden YouTube channels.
+Find 10 hidden YouTube channels about:
 
-Keyword:
-${keyword}
+Keyword: ${keyword}
+Country: ${country}
+Language: ${language}
 
-Country:
-${country}
+Rules:
 
-Language:
-${language}
+- Under 100,000 subscribers
+- High engagement
+- Fast growth
+- Output ONLY valid JSON
 
-Minimum Opportunity Score:
-${score}
-
-Return ONLY JSON.
-
-Format:
+JSON format:
 
 {
-"results":[
-{
-"channel":"",
-"subscribers":"",
-"views":"",
-"uploads":"",
-"opportunity":95,
-"description":"",
-"url":""
+  "results":[
+    {
+      "channel":"",
+      "subscribers":"",
+      "views":"",
+      "uploads":"",
+      "opportunity":90,
+      "description":"",
+      "url":""
+    }
+  ]
 }
-]
-}
-
 `;
 
-    try{
-
-      const geminiResponse=await fetch(
-
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+env.GEMINI_API_KEY,
-
-        {
-
-          method:"POST",
-
-          headers:{
-            "Content-Type":"application/json"
-          },
-
-          body:JSON.stringify({
-
-            generationConfig:{
-              responseMimeType:"application/json",
-              temperature:0.4
-            },
-
-            contents:[
+    const endpoint =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=" +
+      env.GEMINI_API_KEY;
+      const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
               {
-                parts:[
-                  {
-                    text:prompt
-                  }
-                ]
+                text: prompt
               }
             ]
-
-          })
-
+          }
+        ],
+        generationConfig: {
+          temperature: 1,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json"
         }
+      })
+    });
 
-      );
-      if (!geminiResponse.ok) {
+    if (!response.ok) {
 
-  const errorText = await geminiResponse.text();
-
-  return new Response(
-    JSON.stringify({
-      success: false,
-      status: geminiResponse.status,
-      error: "Gemini API request failed.",
-      details: errorText
-    }),
-    {
-      status: 500,
-      headers: {
-        "content-type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
-    }
-  );
-}
-
-      const gemini=await geminiResponse.json();
-
-      const rawText=
-
-        gemini?.candidates?.[0]?.content?.parts?.[0]?.text ||
-
-        "";
-
-      if(rawText===""){
-
-        return new Response(
-          JSON.stringify({
-            success:false,
-            error:"Gemini returned empty response."
-          }),
-          {
-            status:500,
-            headers:{
-              "content-type":"application/json",
-              "Access-Control-Allow-Origin":"*"
-            }
-          }
-        );
-
-      }
-
-      let cleanText=rawText
-      .replace(/```json/gi,"")
-      .replace(/```/g,"")
-      .trim();
-
-      let parsed;
-
-      try{
-
-        parsed=JSON.parse(cleanText);
-
-      }
-
-      catch(error){
-
-        return new Response(
-          JSON.stringify({
-            success:false,
-            error:"Gemini returned invalid JSON.",
-            raw:cleanText
-          }),
-          {
-            status:500,
-            headers:{
-              "content-type":"application/json",
-              "Access-Control-Allow-Origin":"*"
-            }
-          }
-        );
-
-      }
-
-      if(!parsed.results){
-
-        parsed.results=[];
-
-      }
-
-      if(!Array.isArray(parsed.results)){
-
-        parsed.results=[];
-
-      }
-
-      parsed.results=parsed.results.map(item=>({
-
-        channel:item.channel||"Unknown",
-
-        subscribers:item.subscribers||"Unknown",
-
-        views:item.views||"Unknown",
-
-        uploads:item.uploads||"Unknown",
-
-        opportunity:Number(item.opportunity||0),
-
-        description:item.description||"",
-
-        url:item.url||"https://youtube.com"
-
-      }));
+      const error = await response.text();
 
       return new Response(
-
         JSON.stringify({
-
-          success:true,
-
-          total:parsed.results.length,
-
-          keyword,
-
-          results:parsed.results
-
+          success: false,
+          status: response.status,
+          error
         }),
-
         {
-
-          headers:{
-
-            "content-type":"application/json",
-
-            "Access-Control-Allow-Origin":"*"
-
+          headers: {
+            "content-type": "application/json",
+            "Access-Control-Allow-Origin": "*"
           }
-
         }
-
       );
-
     }
-    catch(error){
+
+    const gemini = await response.json();
+
+    const text =
+      gemini.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
 
       return new Response(
-
         JSON.stringify({
-
-          success:false,
-
-          error:error.message || "Unknown server error"
-
+          success: false,
+          error: "Gemini returned invalid JSON",
+          raw: text
         }),
-
         {
-
-          status:500,
-
-          headers:{
-
-            "content-type":"application/json",
-
-            "Access-Control-Allow-Origin":"*"
-
+          headers: {
+            "content-type": "application/json",
+            "Access-Control-Allow-Origin": "*"
           }
-
         }
-
       );
-
     }
 
+    if (!Array.isArray(data.results)) {
+      data.results = [];
+    }
+
+    data.results = data.results.filter(item =>
+      Number(item.opportunity || 0) >= score
+    );
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        keyword,
+        country,
+        language,
+        results: data.results
+      }),
+      {
+        headers: {
+          "content-type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      }
+    );
   }
 
 };
